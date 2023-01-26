@@ -7,8 +7,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "rudi",
-	Short: "Rudi is a basic api for speech transcription",
+	Use:   "filer-server",
+	Short: "This file server serves files from a given directory",
 }
 
 func Execute() {

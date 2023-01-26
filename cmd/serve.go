@@ -11,7 +11,7 @@ import (
 func Serve(groupId string) *cobra.Command {
 	return &cobra.Command{
 		Use:     "serve <root-path> [port]",
-		Long:    "Run this command in order to start a api server",
+		Long:    "Run this command in order to start the file server",
 		GroupID: groupId,
 		Args:    cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
