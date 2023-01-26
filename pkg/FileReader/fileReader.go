@@ -1,4 +1,4 @@
-package filehandler
+package filereader
 
 import (
 	"io"
@@ -7,7 +7,7 @@ import (
 
 type FileReader interface {
 	GetFileContent(filePath string) (string, error)
-	ListFilesRecursive(dirPath string) ([]string, error)
+	ListFilePathsRecursive() ([]string, error)
 }
 
 type FileReaderImpl struct {
@@ -55,52 +55,62 @@ func getFileContent(filePath string) (string, error) {
 	return string(content), nil
 }
 
-// ListFilesRecursive recursively lists all the files in the given directory
+// ListFilePathsRecursive recursively lists all the files in the given directory
 // and returns them as a slice of strings.
-func (fr *FileReaderImpl) ListFilesRecursive(dirPath string) ([]string, error) {
-	absoluteDirPath := fr.rootFolder + "/" + dirPath
-	files, err := listFilesRecursive(absoluteDirPath)
+func (fr *FileReaderImpl) ListFilePathsRecursive() ([]string, error) {
+	files, err := listFilePathsRecursive(fr.rootFolder)
 	if err != nil {
 		return nil, err
 	}
-	return files, nil
+	return removeRootFolder(fr.rootFolder, files), nil
 }
 
-func listFilesRecursive(dirPath string) ([]string, error) {
+func listFilePathsRecursive(dirPath string) ([]string, error) {
 	var files []string
-
 	file, err := os.Open(dirPath)
 	if err != nil {
-		return files, err
+		return nil, err
 	}
 	defer file.Close()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
-		return files, err
+		return nil, err
 	}
 
-	if !fileInfo.IsDir() {
-		files = append(files, fileInfo.Name())
-		return files, nil
-	}
-
-	fileInfos, err := file.Readdir(0)
-	if err != nil {
-		return files, err
-	}
-
-	for _, fileInfo := range fileInfos {
-		if fileInfo.IsDir() {
-			subDirFiles, err := listFilesRecursive(dirPath + "/" + fileInfo.Name())
-			if err != nil {
-				return files, err
-			}
-			files = append(files, subDirFiles...)
-		} else {
-			files = append(files, fileInfo.Name())
+	if fileInfo.IsDir() {
+		fileInfos, err := file.Readdir(-1)
+		if err != nil {
+			return nil, err
 		}
+		for _, fileInfo := range fileInfos {
+			filePath := dirPath + "/" + fileInfo.Name()
+			file, err := os.Open(filePath)
+			if err != nil {
+				return nil, err
+			}
+			defer file.Close()
+			if fileInfo.IsDir() {
+				subFiles, err := listFilePathsRecursive(filePath)
+				if err != nil {
+					return nil, err
+				}
+				files = append(files, subFiles...)
+			} else {
+				files = append(files, filePath)
+			}
+		}
+	} else {
+		files = append(files, dirPath)
 	}
 
 	return files, nil
+}
+
+func removeRootFolder(rootFolder string, files []string) []string {
+	var filteredFiles []string
+	for _, file := range files {
+		filteredFiles = append(filteredFiles, file[len(rootFolder)+1:])
+	}
+	return filteredFiles
 }
